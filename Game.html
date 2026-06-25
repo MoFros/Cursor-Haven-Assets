@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>CLONIUM: Ultimate</title>
+    
+    <meta name="theme-color" content="#050505">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚛️</text></svg>">
+
+    <style>
+        :root {
+            --bg: #050505;
+            --panel: rgba(20, 20, 25, 0.95);
+            --border: rgba(255, 255, 255, 0.08);
+            
+            --p0: #ef4444; /* Red */
+            --p1: #22c55e; /* Green */
+            --p2: #3b82f6; /* Blue */
+            --p3: #eab308; /* Yellow */
+        }
+
+        body {
+            margin: 0; padding: 0;
+            background: radial-gradient(circle at 50% -20%, #0f172a, #000);
+            color: white;
+            font-family: system-ui, -apple-system, sans-serif;
+            height: 100vh; 
+            height: 100dvh; 
+            width: 100vw;
+            overflow: hidden;
+            display: flex; flex-direction: column;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* GPU Optimization */
+        .glass {
+            background: var(--panel);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            transform: translateZ(0);
+        }
+
+        body.low-gfx .glass {
+            backdrop-filter: none; -webkit-backdrop-filter: none;
+            background: #18181b; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            border-color: #333;
+        }
+        body.low-gfx .atom { box-shadow: none !important; border: 1px solid rgba(255,255,255,0.1); }
+        body.low-gfx .cell.active-turn { background: #222; }
+        body.low-gfx .projectile { box-shadow: none; }
+        body.low-gfx { background: #050505; } 
+
+        .btn {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            color: #a1a1aa;
+            cursor: pointer;
+            transition: 0.1s;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 600;
+        }
+        .btn.active {
+            background: rgba(139, 92, 246, 0.2);
+            border-color: #8b5cf6;
+            color: white;
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.2);
+        }
+        body.low-gfx .btn.active { box-shadow: none; background: #4c1d95; }
+        .btn:active { transform: scale(0.96); }
+
+        .btn-main {
+            background: linear-gradient(135deg, #10b981, #059669);
+            border: none;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 800;
+            box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
+        }
+        body.low-gfx .btn-main { box-shadow: none; }
+
+        #screens { position: absolute; inset: 0; pointer-events: none; z-index: 50; }
+        
+        .screen { 
+            position: absolute; inset: 0; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.92);
+            backdrop-filter: blur(10px);
+            pointer-events: auto;
+            transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+            opacity: 0;
+            transform: scale(0.95);
+            pointer-events: none;
+        }
+        body.low-gfx .screen { backdrop-filter: none; background: rgba(0,0,0,0.95); }
+        .screen.visible { opacity: 1; transform: scale(1); pointer-events: auto; }
+
+        .menu-box {
+            width: 90%; max-width: 420px;
+            padding: 24px; border-radius: 24px;
+            display: flex; flex-direction: column; gap: 16px;
+            max-height: 95vh; overflow-y: auto;
+            contain: content; 
+        }
+        
+        .label { 
+            font-size: 0.7rem; color: #71717a; font-weight: 700; 
+            text-transform: uppercase; letter-spacing: 1px; 
+            margin-bottom: 8px; text-align: center;
+        }
+
+        .grid-row { display: flex; gap: 8px; width: 100%; }
+        .grid-row > * { flex: 1; padding: 10px; border-radius: 12px; font-size: 0.85rem; }
+
+        .role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .role-item {
+            padding: 12px; border-radius: 10px;
+            display: flex; flex-direction: column; gap: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .role-header { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+        .role-badge { 
+            font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; 
+            background: rgba(255,255,255,0.1); font-weight: bold; letter-spacing: 0.5px;
+        }
+
+        #game-layout {
+            flex-grow: 1; display: flex; flex-direction: column;
+            width: 100%; height: 100%;
+            opacity: 0; transition: opacity 0.5s;
+        }
+        #game-layout.visible { opacity: 1; }
+
+        header { flex-shrink: 0; padding: 10px; z-index: 10; display: flex; justify-content: center; }
+        
+        .top-bar { 
+            width: 100%; max-width: 600px; 
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 8px 16px; border-radius: 16px;
+        }
+
+        #board-wrap {
+            flex-grow: 1; position: relative;
+            display: flex; align-items: center; justify-content: center;
+            padding: 10px;
+            overflow: hidden; 
+            gap: 20px; 
+        }
+
+        #grid {
+            display: grid; gap: 4px; padding: 4px; 
+            border-radius: 16px;
+            flex-shrink: 0; 
+            contain: layout paint;
+            transform: translateZ(0);
+        }
+
+        .stats-col {
+            display: flex; flex-direction: column; gap: 10px;
+            min-width: 70px;
+            opacity: 0.8;
+            transition: opacity 0.3s;
+        }
+        .stats-card {
+            padding: 8px; border-radius: 10px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.05);
+            display: flex; flex-direction: column; align-items: center;
+            gap: 4px;
+            transition: transform 0.3s, border-color 0.3s;
+            contain: content;
+        }
+        .stats-card.active {
+            border-color: currentColor;
+            transform: scale(1.05);
+            background: rgba(255,255,255,0.08);
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+        }
+        body.low-gfx .stats-card.active { box-shadow: none; background: #333; }
+
+        .stats-val { font-weight: 800; font-size: 1.1rem; line-height: 1; }
+        .stats-label { font-size: 0.55rem; text-transform: uppercase; opacity: 0.6; }
+        .stats-icon { font-size: 0.8rem; margin-bottom: 2px; }
+        .stats-icon svg { width: 24px; height: 24px; fill: currentColor; }
+
+        .cell {
+            position: relative;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 35%; 
+            cursor: pointer;
+            transition: border-color 0.2s, background-color 0.2s;
+            contain: layout paint;
+            will-change: transform;
+        }
+        
+        .cell::after {
+            content: ''; position: absolute; inset: 0;
+            border-radius: 35%;
+            box-shadow: inset 0 0 15px currentColor, 0 0 10px currentColor;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .cell.active-turn {
+            border-color: currentColor; 
+            background-color: rgba(255, 255, 255, 0.08);
+            z-index: 2;
+        }
+        .cell.active-turn::after { opacity: 0.6; }
+
+        .cell.critical::after {
+            opacity: 1;
+            animation: crit-pulse-gpu 1s infinite alternate;
+        }
+
+        @keyframes crit-pulse-gpu {
+            from { opacity: 0.5; transform: scale(0.95); }
+            to   { opacity: 1; transform: scale(1.05); }
+        }
+
+        body.low-gfx .cell.critical::after { animation: none; opacity: 1; }
+        
+        .atom-container {
+            width: 100%; height: 100%;
+            position: relative;
+            pointer-events: none;
+            will-change: transform;
+        }
+        .cell.critical .atom-container { animation: slow-spin 8s linear infinite; }
+        body.low-gfx .cell.critical .atom-container { animation: none; }
+        @keyframes slow-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        .atom {
+            position: absolute;
+            border-radius: 50%;
+            top: 50%; left: 50%;
+            width: 0; height: 0;
+            background: currentColor;
+            transform: translate(-50%, -50%) scale(0);
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s;
+            box-shadow: 0 0 4px rgba(0,0,0,0.6);
+            will-change: transform;
+            transform-style: preserve-3d;
+        }
+        
+        .atom.visible { transform: translate(-50%, -50%) scale(1); }
+
+        @keyframes pop {
+            0% { transform: translate(-50%, -50%) scale(0); }
+            80% { transform: translate(-50%, -50%) scale(1.3); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+        .atom.new { animation: pop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+        .projectile {
+            position: absolute; width: 12px; height: 12px;
+            border-radius: 50%; z-index: 100; pointer-events: none;
+            box-shadow: 0 0 8px currentColor;
+            will-change: transform;
+        }
+        body.low-gfx .projectile { box-shadow: none; }
+
+        .cell.bounce { animation: click-spring 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes click-spring { 0% { transform: scale(1); } 40% { transform: scale(0.92); } 100% { transform: scale(1); } }
+
+        svg { width: 20px; height: 20px; fill: currentColor; }
+
+        @media (max-width: 600px) {
+            .stats-col { display: none; } 
+            .menu-box { padding: 16px; gap: 12px; }
+            h1 { font-size: 1.8rem !important; }
+            .grid-row > * { padding: 8px; }
+        }
+        @media (max-height: 500px) and (min-width: 600px) { .stats-col { display: flex; } }
+    </style>
+</head>
+<body>
+
+    <div id="screens">
+        <div id="screen-start" class="screen visible">
+            <div class="menu-box glass">
+                <div style="text-align: center;">
+                    <h1 style="margin:0; font-size: 2.5rem; background: linear-gradient(to right, #c084fc, #db2777); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">CLONIUM</h1>
+                    <div style="font-size: 0.65rem; color: #71717a; letter-spacing: 4px; margin-top:4px;">ULTIMATE</div>
+                </div>
+
+                <div>
+                    <div class="label">Графика (для слабых устройств)</div>
+                    <div class="grid-row">
+                        <button class="btn active" onclick="setGfx('high',this)">УЛЬТРА</button>
+                        <button class="btn" onclick="setGfx('low',this)" style="border-color: #334155;">БЫСТРО</button>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="label">Размер поля</div>
+                    <div class="grid-row">
+                        <button class="btn active" onclick="setGrid(8,8,this)">8x8</button>
+                        <button class="btn" onclick="setGrid(10,10,this)">10x10</button>
+                        <button class="btn" onclick="setGrid(12,12,this)">12x12</button>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="label">Игроки</div>
+                    <div class="grid-row">
+                        <button class="btn active" onclick="setPlayers(2,this)">2</button>
+                        <button class="btn" onclick="setPlayers(3,this)">3</button>
+                        <button class="btn" onclick="setPlayers(4,this)">4</button>
+                    </div>
+                </div>
+
+                <div class="btn" style="flex-direction:column; padding:10px; cursor:default; background:rgba(0,0,0,0.2);">
+                    <div class="label" style="margin-bottom:8px">Нажмите для смены</div>
+                    <div id="roles" class="role-grid" style="width:100%"></div>
+                </div>
+
+                <button class="btn btn-main" onclick="startGame()" style="padding:16px; border-radius:12px;">НАЧАТЬ БИТВУ</button>
+            </div>
+        </div>
+
+        <div id="screen-win" class="screen hidden">
+            <h1 id="win-text" style="font-size:3rem; margin-bottom:30px;">WIN!</h1>
+            <button class="btn btn-main" onclick="toMenu()" style="padding:12px 40px; border-radius:30px;">МЕНЮ</button>
+        </div>
+    </div>
+
+    <div id="game-layout">
+        <header>
+            <div class="top-bar glass">
+                <button class="btn" onclick="toMenu()" style="width:36px; height:36px; border-radius:8px; padding:0;">
+                    <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+                </button>
+                <div id="status" style="font-weight:700; font-size:0.9rem; display:flex; align-items:center; gap:8px;">Игрок 1</div>
+                <div style="width:36px"></div>
+            </div>
+        </header>
+
+        <div id="board-wrap">
+            <div id="stats-left" class="stats-col"></div>
+            <div id="grid" class="glass"></div>
+            <div id="stats-right" class="stats-col"></div>
+        </div>
+
+        <footer>
+            <div id="comment-box" class="glass hidden" style="padding:10px 20px; border-radius:16px; min-width:200px; text-align:center;">
+                <div id="comment" style="font-size:0.85rem; color:#d4d4d8; font-style:italic;"></div>
+            </div>
+        </footer>
+    </div>
+
+<script>
+    var C = {
+        cols: 8, rows: 8, 
+        players: 2, 
+        gfx: 'high',
+        colors: ['#ef4444', '#22c55e', '#3b82f6', '#eab308'],
+        names: ['Красный', 'Зеленый', 'Синий', 'Желтый'],
+        pData: [
+            {type:'human', diff:'norm'}, {type:'human', diff:'norm'}, 
+            {type:'human', diff:'norm'}, {type:'human', diff:'norm'}
+        ] 
+    };
+
+    var G = { grid: [], active: [], turn: 0, idx: 0, busy: false, started: false, cellSize: 0 };
+
+    const MODES = [
+        {t:'human', d:'norm', l:'ИГРОК', c:'#fff'},
+        {t:'bot', d:'easy', l:'БОТ (УМНЫЙ)', c:'#4ade80'},
+        {t:'bot', d:'norm', l:'БОТ (АГРЕССИЯ)', c:'#facc15'},
+        {t:'bot', d:'hard', l:'БОТ (ЗАХВАТ)', c:'#f87171'},
+        {t:'bot', d:'god', l:'БОТ (УЖАС)', c:'#c084fc'}
+    ];
+
+    const ICON_HUMAN = `<svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>`;
+    const ICON_BOT = `<svg viewBox="0 0 24 24"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2zM7.5 13A2.5 2.5 0 1 0 7.5 18 2.5 2.5 0 0 0 7.5 13zm9 0a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z"/></svg>`;
+
+    window.onload = () => { initMenuRoles(); };
+    window.onresize = resize;
+
+    function setGfx(mode, el) {
+        C.gfx = mode;
+        if(mode === 'low') document.body.classList.add('low-gfx');
+        else document.body.classList.remove('low-gfx');
+        updBtn(el);
+    }
+    function setGrid(c, r, el) { C.cols = c; C.rows = r; updBtn(el); }
+    function setPlayers(n, el) { C.players = n; updBtn(el); initMenuRoles(); }
+    function updBtn(el) {
+        [...el.parentElement.children].forEach(c => c.classList.remove('active'));
+        el.classList.add('active');
+    }
+    
+    function initMenuRoles() {
+        const box = document.getElementById('roles');
+        box.innerHTML = '';
+        for(let i=0; i<C.players; i++) {
+            const d = document.createElement('div');
+            d.className = 'role-item btn';
+            d.id = `role-btn-${i}`;
+            d.style.borderColor = C.colors[i];
+            d.onclick = () => toggleRole(i);
+            box.appendChild(d);
+            updateRoleUI(i);
+        }
+    }
+
+    function toggleRole(i) {
+        const curr = C.pData[i];
+        let idx = MODES.findIndex(m => m.t === curr.type && (m.t === 'human' || m.d === curr.diff));
+        idx = (idx + 1) % MODES.length;
+        C.pData[i] = { type: MODES[idx].t, diff: MODES[idx].d };
+        updateRoleUI(i);
+    }
+
+    function updateRoleUI(i) {
+        const d = document.getElementById(`role-btn-${i}`);
+        if(!d) return;
+        const data = C.pData[i];
+        const modeInfo = MODES.find(m => m.t === data.type && (m.t === 'human' || m.d === data.diff));
+        const isBot = data.type === 'bot';
+        d.innerHTML = `
+            <div class="role-header">
+                <div style="display:flex; align-items:center; gap:8px; color:${C.colors[i]}; text-shadow:0 0 5px ${C.colors[i]}">
+                    ${isBot ? ICON_BOT : ICON_HUMAN} <b style="font-size:0.9rem">${C.names[i]}</b>
+                </div>
+            </div>
+            <div class="role-badge" style="color:${modeInfo.c};">${modeInfo.l}</div>
+        `;
+    }
+
+    function startGame() {
+        G.active = Array.from({length: C.players}, (_,i)=>i);
+        G.idx = 0; G.turn = 0; G.busy = false; G.started = true;
+        switchScreen('game-layout');
+        buildGrid();
+        initPos();
+        resize();
+        updStatus();
+        checkBot();
+    }
+
+    function toMenu() {
+        G.started = false;
+        switchScreen('screen-start');
+    }
+
+    function switchScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('visible'));
+        document.getElementById('game-layout').classList.remove('visible');
+        document.getElementById('screen-win').classList.add('hidden');
+        document.getElementById('screen-win').classList.remove('visible');
+        const el = document.getElementById(id);
+        if(el) {
+            el.classList.remove('hidden');
+            void el.offsetWidth;
+            el.classList.add('visible');
+        }
+    }
+
+    function buildGrid() {
+        const g = document.getElementById('grid');
+        g.innerHTML = '';
+        G.grid = [];
+        for(let r=0; r<C.rows; r++) {
+            const row = [];
+            for(let c=0; c<C.cols; c++) {
+                const el = document.createElement('div');
+                el.className = 'cell';
+                el.onclick = () => userMove(r,c);
+                const inr = document.createElement('div');
+                inr.className = 'atom-container';
+                el.appendChild(inr);
+                const atoms = [];
+                for(let k=0; k<4; k++) {
+                    const a = document.createElement('div');
+                    a.className = 'atom';
+                    inr.appendChild(a);
+                    atoms.push(a);
+                }
+                g.appendChild(el);
+                row.push({r, c, cap: 4, atoms: 0, owner: null, el, inr, atomEls: atoms});
+            }
+            G.grid.push(row);
+        }
+        buildStats();
+    }
+
+    function buildStats() {
+        const left = document.getElementById('stats-left');
+        const right = document.getElementById('stats-right');
+        left.innerHTML = ''; right.innerHTML = '';
+        for(let i=0; i<C.players; i++) {
+            const card = document.createElement('div');
+            card.id = `stat-p${i}`;
+            card.className = 'stats-card';
+            card.style.color = C.colors[i];
+            const isBot = C.pData[i].type === 'bot';
+            card.innerHTML = `
+                <div class="stats-icon">${isBot ? ICON_BOT : ICON_HUMAN}</div>
+                <div class="stats-val" id="stat-cells-${i}">1</div>
+                <div class="stats-label">ЯЧЕЙКИ</div>
+                <div class="stats-val" id="stat-atoms-${i}" style="margin-top:4px">1</div>
+                <div class="stats-label">АТОМЫ</div>
+            `;
+            if (i === 0 || i === 3) left.appendChild(card);
+            else right.appendChild(card);
+        }
+    }
+
+    function updStats() {
+        const stats = [];
+        for(let i=0; i<C.players; i++) stats[i] = {cells:0, atoms:0};
+        G.grid.forEach(r => r.forEach(c => {
+            if(c.owner !== null) {
+                stats[c.owner].cells++;
+                stats[c.owner].atoms += c.atoms;
+            }
+        }));
+        for(let i=0; i<C.players; i++) {
+            const elC = document.getElementById(`stat-cells-${i}`);
+            const elA = document.getElementById(`stat-atoms-${i}`);
+            const card = document.getElementById(`stat-p${i}`);
+            if(elC) elC.textContent = stats[i].cells;
+            if(elA) elA.textContent = stats[i].atoms;
+            if(i === G.active[G.idx]) card.classList.add('active');
+            else card.classList.remove('active');
+            if(stats[i].cells === 0 && G.turn > 0) card.style.opacity = '0.3';
+            else card.style.opacity = '1';
+        }
+    }
+
+    function initPos() {
+        const p = [{r:1,c:1}, {r:1,c:C.cols-2}, {r:C.rows-2,c:C.cols-2}, {r:C.rows-2,c:1}];
+        for(let i=0; i<C.players; i++) {
+            let pos = p[i];
+            if(pos.r<0 || pos.c<0 || pos.r>=C.rows || pos.c>=C.cols) pos = {r:0,c:0}; 
+            const c = G.grid[pos.r][pos.c];
+            c.atoms = 1; c.owner = i;
+            drawCell(c);
+        }
+    }
+
+    function resize() {
+        if(!G.started) return;
+        const wrap = document.getElementById('board-wrap');
+        const g = document.getElementById('grid');
+        const statsW = (window.innerWidth > 600) ? 160 : 0; 
+        const w = wrap.clientWidth - 20 - statsW; 
+        const h = wrap.clientHeight - 10;
+        if (w <= 0 || h <= 0) return;
+        const gap = 3; const padding = 4; 
+        const gapW = (C.cols - 1) * gap; const gapH = (C.rows - 1) * gap;
+        const maxCellW = (w - padding - gapW) / C.cols;
+        const maxCellH = (h - padding - gapH) / C.rows;
+        let size = Math.floor(Math.min(maxCellW, maxCellH));
+        G.cellSize = size;
+        g.style.gridTemplateColumns = `repeat(${C.cols}, ${size}px)`;
+        g.style.gridTemplateRows = `repeat(${C.rows}, ${size}px)`;
+        G.grid.forEach(row => row.forEach(c => { if(c.atoms>0) drawCell(c); }));
+    }
+
+    // --- Animation Helpers ---
+    function showProj(r, c, t, col) {
+        return new Promise(res => {
+            if(!t.length || !G.started || document.hidden) { res(); return; }
+            const rect = G.grid[r][c].el.getBoundingClientRect();
+            const sx = rect.left + rect.width/2; const sy = rect.top + rect.height/2;
+            let cnt = 0;
+            const duration = (C.rows * C.cols > 100) ? 80 : 120;
+            
+            requestAnimationFrame(() => {
+                t.forEach(target => {
+                    const tr = G.grid[target.r][target.c].el.getBoundingClientRect();
+                    const tx = tr.left + tr.width/2; const ty = tr.top + tr.height/2;
+                    const p = document.createElement('div');
+                    p.className = 'projectile'; p.style.backgroundColor = col;
+                    p.style.left = sx + 'px'; p.style.top = sy + 'px';
+                    document.body.appendChild(p);
+                    
+                    const anim = p.animate([
+                        { transform: 'translate(-50%,-50%) scale(1)' },
+                        { transform: `translate(calc(-50% + ${tx-sx}px), calc(-50% + ${ty-sy}px)) scale(1)` }
+                    ], { duration: duration, easing: 'linear' });
+                    
+                    anim.onfinish = () => { p.remove(); cnt++; if(cnt===t.length) res(); };
+                });
+            });
+        });
+    }
+
+    async function userMove(r, c) {
+        if(!G.started || G.busy) return;
+        const p = G.active[G.idx];
+        if(C.pData[p].type === 'bot') return;
+        const cell = G.grid[r][c];
+        if(cell.owner !== null && cell.owner !== p) return;
+        if(cell.owner !== p) return; 
+        
+        cell.el.classList.remove('bounce');
+        void cell.el.offsetWidth; 
+        cell.el.classList.add('bounce');
+
+        G.busy = true;
+        await addAtom(r, c, p);
+        endTurn();
+    }
+
+    async function addAtom(r, c, p) {
+        if (!G.started) return;
+        const cell = G.grid[r][c];
+        cell.atoms++;
+        cell.owner = p;
+        drawCell(cell, true); 
+        const isBig = C.rows * C.cols > 100;
+        if(cell.atoms >= cell.cap) await explode(r, c, p);
+        else await wait(isBig ? 30 : 120);
+    }
+
+    async function explode(r, c, p) {
+        if (!G.started) return;
+        const cell = G.grid[r][c];
+        if (cell.atoms < cell.cap) return;
+
+        if (Math.random() > 0.8) showComment("Цепная реакция!");
+
+        cell.atoms -= cell.cap;
+        if(cell.atoms === 0) cell.owner = null;
+        drawCell(cell);
+
+        const targets = getNeighbors(r, c);
+        if (C.gfx === 'high') await showProj(r, c, targets, C.colors[p]);
+
+        const critical = [];
+        for(let t of targets) {
+            const tc = G.grid[t.r][t.c];
+            tc.atoms++;
+            tc.owner = p;
+            drawCell(tc, true);
+            if(tc.atoms >= tc.cap) critical.push(t);
+        }
+
+        if(critical.length > 0) {
+            const delay = (C.rows * C.cols > 80) ? 20 : 80;
+            await wait(delay);
+            await Promise.all(critical.map(pos => explode(pos.r, pos.c, p)));
+        }
+    }
+
+    function getNeighbors(r, c) {
+        const n = [];
+        if(r>0) n.push({r:r-1,c:c});
+        if(r<C.rows-1) n.push({r:r+1,c:c});
+        if(c>0) n.push({r:r,c:c-1});
+        if(c<C.cols-1) n.push({r:r,c:c+1});
+        return n;
+    }
+
+    function drawCell(c, isNew) {
+        if(c.owner === null) {
+            c.el.style.borderColor = ''; c.el.style.backgroundColor = '';
+            c.el.style.boxShadow = ''; c.el.style.color = '';
+            c.el.classList.remove('active-turn', 'critical');
+            c.atomEls.forEach(a => { 
+                a.style.transition = '';
+                a.style.transform = `translate(-50%, -50%) scale(0)`; 
+                a.style.opacity = 0; 
+            });
+            return;
+        }
+
+        const col = C.colors[c.owner];
+        c.el.style.color = col; 
+        c.el.style.borderColor = col;
+        c.el.style.backgroundColor = col + '1A';
+
+        const isMyTurn = c.owner === G.active[G.idx];
+        c.el.classList.toggle('active-turn', isMyTurn);
+        c.el.classList.toggle('critical', c.atoms === 3);
+        
+        if(c.atoms === 3) {
+             if (!c.el.style.animationDelay) c.el.style.animationDelay = `-${Math.random()}s`;
+        } else {
+             c.el.style.animationDelay = '';
+        }
+
+        const sz = G.cellSize || c.el.clientWidth; 
+        const d = sz * 0.22; const asz = sz * 0.28; 
+        let pos = [{x:0,y:0}];
+        
+        if(c.atoms===2) pos = [{x:-d,y:-d},{x:d,y:d}];
+        
+        if(c.atoms===3) {
+             const r = d * 1.7; 
+             pos = [{x:0, y:-r}, {x:r * 0.866, y:r * 0.5}, {x:-r * 0.866, y:r * 0.5}];
+        }
+        
+        if(c.atoms>=4) pos = [{x:-d,y:-d},{x:d,y:-d},{x:-d,y:d},{x:d,y:d}];
+        
+        c.atomEls.forEach((a, i) => {
+            if(i < c.atoms) {
+                a.style.width = asz + 'px'; a.style.height = asz + 'px';
+                a.style.color = col; a.style.opacity = 1;
+                a.style.transition = 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s';
+                if (isNew && i === c.atoms - 1 && !document.hidden) {
+                    a.style.transition = 'none';
+                    a.style.transform = `translate(calc(-50% + ${pos[i].x}px), calc(-50% + ${pos[i].y}px)) scale(0)`;
+                    void a.offsetWidth; 
+                    a.style.transition = 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s';
+                }
+                a.style.transform = `translate(calc(-50% + ${pos[i].x}px), calc(-50% + ${pos[i].y}px)) scale(1)`;
+            } else {
+                a.style.transition = ''; 
+                a.style.transform = `translate(-50%, -50%) scale(0)`;
+            }
+        });
+    }
+
+    function endTurn() {
+        if(Math.random() > 0.8) hideComment();
+        const stats = {};
+        G.active.forEach(p => stats[p] = 0);
+        G.grid.forEach(row => row.forEach(c => { if(c.owner!==null) stats[c.owner]++; }));
+        const survivors = G.active.filter(p => stats[p] > 0);
+        if(survivors.length <= 1 && G.turn > C.players) { win(survivors[0]); return; }
+        if(G.turn > C.players) G.active = survivors;
+        G.idx = (G.idx + 1) % G.active.length;
+        G.turn++;
+        G.busy = false;
+        updStatus();
+        updStats();
+        G.grid.forEach(r=>r.forEach(c=>drawCell(c, false))); 
+        checkBot();
+    }
+
+    function updStatus() {
+        const p = G.active[G.idx];
+        const conf = C.pData[p];
+        const isBot = conf.type === 'bot';
+        const st = document.getElementById('status');
+        st.style.color = C.colors[p];
+        let diffLabel = "";
+        if(isBot) {
+            if(conf.diff === 'easy') diffLabel = "CO-OP";
+            if(conf.diff === 'norm') diffLabel = "AGRO";
+            if(conf.diff === 'hard') diffLabel = "SAFE";
+            if(conf.diff === 'god') diffLabel = "GOD";
+        }
+        st.innerHTML = `${C.names[p]} <span style="opacity:0.6; font-size:0.8em; border:1px solid currentColor; padding:2px 6px; border-radius:4px; margin-left:8px;">${isBot ? diffLabel : 'ВЫ'}</span>`;
+    }
+    function showComment(text) {
+        const box = document.getElementById('comment-box');
+        const txt = document.getElementById('comment');
+        txt.innerText = text;
+        box.classList.remove('hidden');
+        setTimeout(hideComment, 3000);
+    }
+    function hideComment() { document.getElementById('comment-box').classList.add('hidden'); }
+    function win(w) {
+        G.started = false;
+        switchScreen('screen-win');
+        document.getElementById('win-text').innerHTML = `<span style="color:${C.colors[w]}">${C.names[w]}</span> ПОБЕДИЛ!`;
+    }
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+
+    async function checkBot() {
+        const p = G.active[G.idx];
+        const conf = C.pData[p];
+        if(conf.type === 'bot' && G.started) {
+            if (!document.hidden) await wait(250);
+            
+            // Check if humans are still in the game for Cooperative logic
+            const humansAlive = G.active.some(id => C.pData[id].type === 'human');
+            
+            if(conf.diff === 'god') aiGod(p);
+            else if(conf.diff === 'hard') aiHard(p);
+            else if(conf.diff === 'norm') aiNormal(p);
+            else aiEasy(p, humansAlive);
+        }
+    }
+
+    // --- AI LOGIC START ---
+
+    // 1. EASY (COOPERATIVE)
+    // Priority: Attack Humans. Cooperate with Bots (unless only bots remain).
+    async function aiEasy(p, humansAlive) { 
+        const moves = [];
+        G.grid.forEach(row => row.forEach(c => { if(c.owner===p) moves.push(c); }));
+        if(!moves.length) { endTurn(); return; }
+
+        let best = moves[0];
+        let maxScore = -Infinity;
+
+        for(let c of moves) {
+            let score = 0;
+            const ns = getNeighbors(c.r, c.c);
+            
+            ns.forEach(n => {
+                const nc = G.grid[n.r][n.c];
+                if(nc.owner === null) {
+                    score += 10; // Capture empty space is okay
+                } else if(nc.owner !== p) {
+                    const isTargetHuman = C.pData[nc.owner].type === 'human';
+                    
+                    if (humansAlive) {
+                        // If humans exist, prioritize them heavily
+                        if (isTargetHuman) score += 500;
+                        else score -= 1000; // Do not attack other bots if humans are alive
+                    } else {
+                        // No humans left, Free For All
+                        score += 50;
+                    }
+                }
+            });
+            
+            // Bias towards action so they don't freeze
+            score += Math.random() * 20; 
+            
+            if(score > maxScore) { maxScore = score; best = c; }
+        }
+        await addAtom(best.r, best.c, p);
+        endTurn();
+    }
+
+    // 2. NORMAL (AGGRESSIVE)
+    // Priority: Aggression. Explode on enemies.
+    async function aiNormal(p) { 
+        const moves = [];
+        G.grid.forEach(row => row.forEach(c => { if(c.owner===p) moves.push(c); }));
+        if(!moves.length) { endTurn(); return; }
+        
+        let best = moves[0];
+        let maxScore = -Infinity;
+
+        for(let c of moves) {
+            let score = 0;
+            const ns = getNeighbors(c.r, c.c);
+            let enemies = 0;
+            
+            ns.forEach(n => {
+                const nc = G.grid[n.r][n.c];
+                if(nc.owner !== null && nc.owner !== p) enemies++;
+            });
+
+            // Base desire to grow
+            score += c.atoms * 5;
+
+            // If we can explode (3 atoms)
+            if(c.atoms === 3) {
+                // Huge bonus for exploding onto enemies
+                score += (enemies * 100);
+            } else {
+                // If not exploding, prefer cells near enemies to pressure them
+                score += (enemies * 10);
+            }
+
+            score += Math.random() * 15; 
+            if(score > maxScore) { maxScore = score; best = c; }
+        }
+        await addAtom(best.r, best.c, p);
+        endTurn();
+    }
+
+    // 3. HARD (EXPANSIONIST / DEFENSIVE)
+    // Priority: Occupy max cells. Do not give up cells.
+    async function aiHard(p) { 
+        const moves = [];
+        G.grid.forEach(row => row.forEach(c => { if(c.owner===p) moves.push(c); }));
+        if(!moves.length) { endTurn(); return; }
+
+        let best = moves[0];
+        let maxScore = -Infinity;
+
+        for(let c of moves) {
+            let score = 0;
+            const ns = getNeighbors(c.r, c.c);
+            let empty = 0;
+            let criticalEnemies = 0;
+            
+            ns.forEach(n => {
+                const nc = G.grid[n.r][n.c];
+                if(nc.owner === null) empty++;
+                else if(nc.owner !== p && nc.atoms === 3) criticalEnemies++;
+            });
+
+            // Main Goal: Expand
+            score += empty * 30; // High value on taking new ground
+            score += c.atoms * 5; // Value building up own cells
+
+            // Defense: If I add here, does it help?
+            // If neighbour is critical enemy, adding here might be bad if I don't explode
+            if (criticalEnemies > 0 && c.atoms < 3) {
+                score -= 200; // Danger! Don't feed the enemy
+            }
+            
+            // If I can explode onto critical enemy, that's good defense (pre-emptive strike)
+            if (c.atoms === 3 && criticalEnemies > 0) {
+                score += 300;
+            }
+
+            score += Math.random() * 10; 
+            if(score > maxScore) { maxScore = score; best = c; }
+        }
+        await addAtom(best.r, best.c, p);
+        endTurn();
+    }
+
+    // 4. GOD (HORROR / ULTIMATE)
+    // Priority: 12/10 Greed. Win at any cost. Simulation.
+    async function aiGod(p) {
+        const moves = [];
+        const size = C.rows * C.cols;
+        const currentAtoms = new Int8Array(size);
+        const currentOwners = new Int8Array(size).fill(-1);
+        const caps = new Int8Array(size);
+
+        // Snapshot current state
+        for(let r=0; r<C.rows; r++){
+            for(let c=0; c<C.cols; c++){
+                const idx = r * C.cols + c;
+                const cell = G.grid[r][c];
+                if(cell.owner === p) moves.push({r, c, idx});
+                currentAtoms[idx] = cell.atoms;
+                currentOwners[idx] = cell.owner === null ? -1 : cell.owner;
+                caps[idx] = cell.cap;
+            }
+        }
+
+        if(!moves.length) { endTurn(); return; }
+
+        let best = moves[0];
+        let maxScore = -Infinity;
+
+        const simAtoms = new Int8Array(size);
+        const simOwners = new Int8Array(size);
+        const queue = new Int32Array(size * 5); 
+
+        for(let m of moves) {
+            // Reset Sim
+            simAtoms.set(currentAtoms);
+            simOwners.set(currentOwners);
+            
+            // Run Simulation (simulate chain reaction for this move)
+            simChainFast(simAtoms, simOwners, caps, m.idx, p, queue, 800);
+            
+            let myCells = 0;
+            let myAtomsTotal = 0;
+            let enemyCells = 0;
+
+            for(let i=0; i<size; i++) {
+                if(simOwners[i] === p) { 
+                    myCells++; 
+                    myAtomsTotal += simAtoms[i]; 
+                } else if(simOwners[i] !== -1) { 
+                    enemyCells++; 
+                }
+            }
+
+            // Scoring: EXTREME GREED
+            // 1. Victory condition check
+            if (enemyCells === 0) {
+                // If this move wipes everyone out, do it immediately
+                maxScore = Infinity; 
+                best = m; 
+                break; 
+            }
+
+            let score = 0;
+
+            // Greed factor: Cells are worth way more than atoms
+            score += (myCells * 1000); 
+            // Secondary: Total mass
+            score += (myAtomsTotal * 10);
+            // Aggression: Reduce enemy space
+            score -= (enemyCells * 500);
+
+            // Tie-breaker: Centrality? No, Greed is enough.
+            // Tie-breaker: Randomness to avoid loops
+            score += Math.random() * 5;
+
+            if(score > maxScore) { maxScore = score; best = m; }
+        }
+        
+        await addAtom(best.r, best.c, p);
+        endTurn();
+    }
+
+    function simChainFast(atoms, owners, caps, startIdx, p, queue, maxLoops) {
+        let head = 0; let tail = 0;
+        atoms[startIdx]++; owners[startIdx] = p;
+        if(atoms[startIdx] >= caps[startIdx]) queue[tail++] = startIdx;
+        let loops = 0;
+        while(head < tail && loops < maxLoops) {
+            const currIdx = queue[head++]; loops++;
+            if(atoms[currIdx] >= caps[currIdx]) {
+                atoms[currIdx] -= caps[currIdx];
+                if(atoms[currIdx] === 0) owners[currIdx] = -1;
+                
+                const r = (currIdx / C.cols) | 0; const c = currIdx % C.cols;
+                
+                // Unrolled neighbor adding for speed
+                // UP
+                if(r > 0) { 
+                    const ni = currIdx - C.cols; 
+                    atoms[ni]++; owners[ni] = p; 
+                    if(atoms[ni] >= caps[ni]) queue[tail++] = ni; 
+                }
+                // DOWN
+                if(r < C.rows - 1) { 
+                    const ni = currIdx + C.cols; 
+                    atoms[ni]++; owners[ni] = p; 
+                    if(atoms[ni] >= caps[ni]) queue[tail++] = ni; 
+                }
+                // LEFT
+                if(c > 0) { 
+                    const ni = currIdx - 1; 
+                    atoms[ni]++; owners[ni] = p; 
+                    if(atoms[ni] >= caps[ni]) queue[tail++] = ni; 
+                }
+                // RIGHT
+                if(c < C.cols - 1) { 
+                    const ni = currIdx + 1; 
+                    atoms[ni]++; owners[ni] = p; 
+                    if(atoms[ni] >= caps[ni]) queue[tail++] = ni; 
+                }
+            }
+        }
+    }
+</script>
+</body>
+</html>
